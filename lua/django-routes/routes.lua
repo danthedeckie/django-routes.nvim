@@ -30,6 +30,11 @@ function M.parse(output)
     return routes
 end
 
+--- Multi-line summary of a route, for picker preview windows.
+function M.describe(route)
+    return string.format('Name: %s\nURL:  %s\nView: %s', route.name, route.url, route.view)
+end
+
 local function notify_error(message)
     vim.notify('django-routes: ' .. message, vim.log.levels.ERROR)
 end
