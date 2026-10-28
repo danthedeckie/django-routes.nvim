@@ -22,14 +22,42 @@ By default it uses the first of those that's available.
         picker = 'snacks', -- optional
         picker_opts = { layout = { preset = 'dropdown' } }, -- optional, passed to the picker
     },
-    cmd = 'DjangoRoutes',
+    cmd = { 'DjangoRoutes', 'DjangoRoutesAuto' },
     keys = {
-        { '<leader>dr', function() require('django-routes').pick() end, desc = 'Django routes' },
+        { '<leader>dr', '<cmd>DjangoRoutes<cr>', desc = 'Django routes' },
+        { '<leader>dR', '<cmd>DjangoRoutesAuto<cr>', desc = 'Django routes (reverse / url tag)' },
     },
 }
 ```
 
-Or run `:DjangoRoutes [snacks|telescope|select]`.
+## Commands
+
+- `:DjangoRoutes [picker]` - inserts the bare route name, eg `admin:index`.
+- `:DjangoRoutesAuto [picker]` - inserts the route wrapped to suit the current filetype:
+
+  | Filetype             | Inserted                    |
+  | -------------------- | --------------------------- |
+  | `python`             | `reverse("admin:index")`    |
+  | `htmldjango`, `html` | `{% url 'admin:index' %}`   |
+  | anything else        | `admin:index`               |
+
+  If you've already typed the opening quote of a call's first argument or a template tag - eg
+  `reverse("`, `redirect('`, `{% url '` - it inserts just the name, so you don't get
+  `reverse("reverse("..."))`. This works with the cursor on either quote of `""`, or on a lone
+  opening quote. It doesn't add the `reverse` import - leave that to your LSP / ruff.
+
+Both commands normally insert before the cursor (like `P`). But if the cursor is on the first
+character of an empty pair - `""`, `''`, `()`, `[]`, `{}` or `><` - they insert inside it. With
+`:DjangoRoutesAuto`, `redirect()` → `redirect(reverse("admin:index"))` and `<a href="">` →
+`<a href="{% url ... %}">`.
+
+`[picker]` is optional: `snacks`, `telescope` or `select`.
+
+To use the filetype-aware insert from Lua, pass it as `on_choose`:
+
+```lua
+require('django-routes').pick({ on_choose = require('django-routes').insert_for_filetype })
+```
 
 ## Options
 
@@ -39,6 +67,22 @@ Or run `:DjangoRoutes [snacks|telescope|select]`.
 | `picker`      | `nil` (auto) - `'snacks'`, `'telescope'`, `'select'`, or `function(routes, on_choose, picker_opts)` |
 | `picker_opts` | `{}`                                                       |
 | `on_choose`   | inserts `route.name` at the cursor; receives `{ url, view, name, text }` |
+| `wrappers`    | see below                                                  |
+
+`wrappers` sets what `:DjangoRoutesAuto` inserts per filetype; `{name}` is replaced with the route
+name. Your table is merged with the defaults, so you only need to list changes. Set a filetype to
+`false` to insert the bare name for it. Unlike the other options, it's only read from `setup()` /
+`opts`, not per-call:
+
+```lua
+opts = {
+    wrappers = {
+        python = 'reverse_lazy("{name}")',  -- default: 'reverse("{name}")'
+        jinja = "{{ url('{name}') }}",      -- add a filetype
+        html = false,                       -- bare name in plain html
+    },
+}
+```
 
 If your venv isn't activated in nvim, set `cmd` to eg
 `{ 'uv', 'run', 'manage.py', 'show_urls', '--skip-checks', '--format', 'json' }`.
