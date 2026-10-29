@@ -18,6 +18,7 @@ By default it uses the first of those that's available.
 ```lua
 {
     'danthedeckie/django-routes.nvim',
+    version = '*', -- latest tagged release; use `version = false` to track main
     opts = {
         picker = 'snacks', -- optional
         picker_opts = { layout = { preset = 'dropdown' } }, -- optional, passed to the picker
